@@ -40,7 +40,7 @@ job_t *parse_line(char *buf) {
     parse_state state = ARGUMENT;
     
     // 改行文字があることを確認
-    if (strchr(buf, '\n') == 0)
+    if (strchr(buf, '\n') == NULL)
         PARSEERR("too long command");
     
     // 改行文字まで解析

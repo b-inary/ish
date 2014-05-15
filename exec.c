@@ -4,10 +4,10 @@ int getjid(char *arg) {
     if (arg == NULL)
         return maxjid == 0 ? 1 : maxjid;
     char *c;
-    int jid = strtol(arg, &c, 10);
+    int jobid = strtol(arg, &c, 10);
     if (*c != '\0' || errno == ERANGE)
         return -1;
-    return jid;
+    return jobid;
 }
 
 // ジョブの実行
@@ -56,13 +56,13 @@ void execute_job(job_t *j, char *envp[], char *path[]) {
             print_bginfo(1);
             p->status = DONE;
         } else if (strcmp(p->arg_list[0], "bg") == 0) {
-            int jid = getjid(p->arg_list[1]);
-            if (jid >= 1) continue_bg(jid);
+            int jobid = getjid(p->arg_list[1]);
+            if (jobid >= 1) continue_bg(jobid);
             else printf("bg: invalid argument\n");
             p->status = DONE;
         } else if (strcmp(p->arg_list[0], "fg") == 0) {
-            int jid = getjid(p->arg_list[1]);
-            if (jid >= 1) continue_fg(jid);
+            int jobid = getjid(p->arg_list[1]);
+            if (jobid >= 1) continue_fg(jobid);
             else printf("fg: invalid argument\n");
             p->status = DONE;
         }

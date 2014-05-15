@@ -60,7 +60,7 @@ typedef struct job_t_ {
     int proc_cnt;           // ジョブに含まれるプロセス数
     proc_t *proc_list;      // プロセスリスト
     job_mode mode;          // フォアグラウンド/バックグラウンド
-    int jobid;              // ジョブ番号
+    int jobid;              // バックグラウンド管理用に割り当てるジョブ番号
     int printed;            // 状態変化を既に表示したかどうか
     proc_status status;     // ジョブの状態
 } job_t;
@@ -68,10 +68,7 @@ typedef struct job_t_ {
 // グローバル変数
 extern job_t *job_list;     // ジョブリスト
 extern int maxjid;          // jobidの最大値
-extern int signaled;        // ^C, ^V などのシグナルが検出された
-
-
-// 関数
+extern int signaled;        // 子プロセスがシグナルを受けた (改行の制御用)
 
 // exec.c
 void execute_job(job_t *j, char *envp[], char *path[]);     // ジョブの実行

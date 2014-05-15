@@ -109,14 +109,14 @@ void wait_job(job_t *j) {
 }
 
 // バックグラウンドで再開
-void continue_bg(int jid) {
+void continue_bg(int jobid) {
     job_t *j;
     for (j = job_list; j; j = j->next) {
-        if (jid == j->jobid) {
+        if (jobid == j->jobid) {
             if (j->status == DONE) {
                 printf("bg: job has terminated\n");
             } else if (j->status == RUNNING) {
-                printf("bg: job %d already in background\n", jid);
+                printf("bg: job %d already in background\n", jobid);
             } else {
                 proc_t *p;
                 for (p = j->proc_list; p; p = p->next)
@@ -134,10 +134,10 @@ void continue_bg(int jid) {
 }
 
 // フォアグラウンドで再開
-void continue_fg(int jid) {
+void continue_fg(int jobid) {
     job_t *j;
     for (j = job_list; j; j = j->next) {
-        if (jid == j->jobid) {
+        if (jobid == j->jobid) {
             if (j->status == DONE) {
                 printf("fg: job has terminated\n");
             } else {
