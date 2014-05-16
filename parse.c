@@ -3,6 +3,7 @@
 // 標準入力から size - 1 文字を s に読み込む
 char *get_line(char *s, int size) {
     printf(PROMPT);
+    errno = 0;
     if (fgets(s, size, stdin) == NULL) {
         if (errno != EINTR) {
             printf("exit\n");

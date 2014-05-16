@@ -95,6 +95,7 @@ int mark_status(job_t *j, pid_t pid, int status) {
 void wait_job(job_t *j) {
     while (is_running(j)) {
         int status;
+        errno = 0;
         pid_t pid = waitpid(-j->pgid, &status, WUNTRACED);
         mark_status(j, pid, status);
     }
@@ -171,9 +172,10 @@ void continue_fg(int jobid) {
 void update_status() {
     int status;
     pid_t pid;
-    do
+    do {
+        errno = 0;
         pid = waitpid(-1, &status, WNOHANG | WUNTRACED);
-    while (mark_status(job_list, pid, status));
+    } while (mark_status(job_list, pid, status));
     job_t *j;
     for (j = job_list; j; j = j->next) {
         if (is_done(j)) {
