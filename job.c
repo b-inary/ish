@@ -111,6 +111,12 @@ void wait_job(job_t *j) {
 // バックグラウンドで再開
 void continue_bg(int jobid) {
     job_t *j;
+    if (jobid == 0)
+        for (j = job_list; j; j = j->next)
+            if (j->status == STOPPED && jobid < j->jobid)
+                jobid = j->jobid;
+    if (jobid == 0)
+        jobid = maxjid ? maxjid : -1;
     for (j = job_list; j; j = j->next) {
         if (jobid == j->jobid) {
             if (j->status == DONE) {
@@ -136,6 +142,8 @@ void continue_bg(int jobid) {
 // フォアグラウンドで再開
 void continue_fg(int jobid) {
     job_t *j;
+    if (jobid == 0)
+        jobid = maxjid ? maxjid : -1;
     for (j = job_list; j; j = j->next) {
         if (jobid == j->jobid) {
             if (j->status == DONE) {

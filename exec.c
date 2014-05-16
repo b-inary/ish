@@ -1,11 +1,11 @@
 #include "ish.h"
 
 int getjid(char *arg) {
-    if (arg == NULL)
-        return maxjid == 0 ? 1 : maxjid;
+    if (arg == NULL) return 0;
     char *c;
+    errno = 0;
     int jobid = strtol(arg, &c, 10);
-    if (*c != '\0' || errno == ERANGE)
+    if (jobid < 1 || *c != '\0' || errno == ERANGE)
         return -1;
     return jobid;
 }
@@ -57,12 +57,12 @@ void execute_job(job_t *j, char *envp[], char *path[]) {
             p->status = DONE;
         } else if (strcmp(p->arg_list[0], "bg") == 0) {
             int jobid = getjid(p->arg_list[1]);
-            if (jobid >= 1) continue_bg(jobid);
+            if (jobid != -1) continue_bg(jobid);
             else printf("bg: invalid argument\n");
             p->status = DONE;
         } else if (strcmp(p->arg_list[0], "fg") == 0) {
             int jobid = getjid(p->arg_list[1]);
-            if (jobid >= 1) continue_fg(jobid);
+            if (jobid != -1) continue_fg(jobid);
             else printf("fg: invalid argument\n");
             p->status = DONE;
         }
