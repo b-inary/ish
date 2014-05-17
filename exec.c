@@ -1,5 +1,6 @@
 #include "ish.h"
 
+// 引数からジョブ番号を返す
 int getjid(char *arg) {
     if (arg == NULL) return 0;
     char *c;
@@ -8,6 +9,28 @@ int getjid(char *arg) {
     if (jobid < 1 || *c != '\0' || errno == ERANGE)
         return -1;
     return jobid;
+}
+
+// 作業ディレクトリを変更
+void change_dir(char *arg) {
+    if (arg == NULL || strcmp(arg, "-") == 0) {
+        char *name = arg == NULL ? "HOME" : "OLDPWD";
+        arg = getenv(name);
+        if (arg == NULL) {
+            printf("cd: %s not set\n", name);
+            return;
+        }
+        if (name[0] == 'O')
+            printf("%s\n", arg);
+    }
+    if (chdir(arg) == -1) {
+        perror(arg);
+    } else {
+        char *buf = getcwd(NULL, 0);
+        setenv("OLDPWD", getenv("PWD"), 1);
+        setenv("PWD", buf, 1);
+        free(buf);
+    }
 }
 
 // ジョブの実行
@@ -50,7 +73,7 @@ void execute_job(job_t *j, char *envp[], char *path[]) {
         if (infile  != fd_stdin)  close(infile);
         if (outfile != fd_stdout) close(outfile);
         
-        // 組み込みコマンドの処理 (jobs, bg, fg)
+        // 組み込みコマンドの処理 (jobs, bg, fg, cd)
         // bg, fg は引数に正整数を取ってジョブの指定ができる
         if (strcmp(p->arg_list[0], "jobs") == 0) {
             print_bginfo(1);
@@ -64,6 +87,9 @@ void execute_job(job_t *j, char *envp[], char *path[]) {
             int jobid = getjid(p->arg_list[1]);
             if (jobid != -1) continue_fg(jobid);
             else printf("fg: invalid argument\n");
+            p->status = DONE;
+        } else if (strcmp(p->arg_list[0], "cd") == 0) {
+            change_dir(p->arg_list[1]);
             p->status = DONE;
         }
         // 組み込みコマンドでなければforkを行う
