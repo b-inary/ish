@@ -13,7 +13,7 @@
 #include <sys/wait.h>
 
 // 定数
-#define PROMPT      "ish$ "
+#define PROMPT      "\x1b[1;34mish$\x1b[0;39m "
 #define LINE_LEN    256
 #define ARGS_LEN    32
 
