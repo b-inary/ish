@@ -71,7 +71,7 @@ extern int maxjid;          // jobidの最大値
 extern int signaled;        // 子プロセスがシグナルを受けた (改行の制御用)
 
 // exec.c
-void execute_job(job_t *j, char *envp[], char *path[]);     // ジョブの実行
+void execute_job(job_t *j);     // ジョブの実行
 
 // job.c
 proc_t *new_proc();         // プロセス構造体を作成
@@ -86,8 +86,6 @@ void print_bginfo(int print_all);   // バックグラウンドの状態変化�
 // parse.c
 char *get_line(char *s, int size);      // size - 1 文字を s に読み込む
 job_t *parse_line(char *s);             // パーサー; エラー時はNULLを返す
-char **parse_env_path(char *envp[]);    // 環境変数PATHのパーサー
-void free_env_path(char *path[]);       // パースしたPATHの解放
 
 
 #endif // ISH_H_

@@ -6,7 +6,7 @@ int signaled = 0;
 
 void do_nothing(int sig) {}
 
-int main(int argc, char *argv[], char *envp[])
+int main(int argc, char *argv[])
 {
     // シグナルハンドラの設定
     struct sigaction sa1, sa2;
@@ -20,9 +20,6 @@ int main(int argc, char *argv[], char *envp[])
     sigaction(SIGQUIT, &sa1, NULL);
     sigaction(SIGTTIN, &sa2, NULL);
     sigaction(SIGTTOU, &sa2, NULL);
-    
-    // PATHの設定
-    char **path = parse_env_path(envp);
     
     char s[LINE_LEN];
     job_t *j;
@@ -39,13 +36,11 @@ int main(int argc, char *argv[], char *envp[])
                 while (jj->next) jj = jj->next;
                 jj->next = j;
             }
-            execute_job(j, envp, path);
+            execute_job(j);
         }
         print_bginfo(0);
         signaled = 0;
     }
-    
-    free_env_path(path);
     
     return 0;
 }

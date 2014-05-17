@@ -119,39 +119,3 @@ job_t *parse_line(char *buf) {
     return j;
 }
 
-// 環境変数PATHのパーサー
-char **parse_env_path(char *envp[]) {
-    char **path;
-    int i, j;
-    for (i = 0; envp[i]; ++i) {
-        if (strncmp(envp[i], "PATH=", 5) == 0) {
-            int cnt = 1, idx = 5;
-            for (j = 0; envp[i][j] != '\0'; ++j)
-                if (envp[i][j] == ':') ++cnt;
-            MALLOC(path, sizeof(char*) * (cnt + 1));
-            for (j = 0; j < cnt; ++j) {
-                int len = strcspn(envp[i] + idx, ":");
-                int z = len ? 0 : 1;
-                MALLOC(path[j], sizeof(char) * (len + z + 2));
-                strncpy(path[j], envp[i] + idx, len);
-                if (z) path[j][0] = '.';
-                path[j][len + z] = '/';
-                path[j][len + z + 1] = '\0';
-                idx += len + 1;
-            }
-            path[cnt] = NULL;
-            return path;
-        }
-    }
-    MALLOC(path, sizeof(char*));
-    *path = NULL;
-    return path;
-}
-
-// PATHの解放
-void free_env_path(char *path[]) {
-    int i;
-    for (i = 0; path[i]; ++i)
-        free(path[i]);
-}
-

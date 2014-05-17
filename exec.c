@@ -34,7 +34,7 @@ void change_dir(char *arg) {
 }
 
 // ジョブの実行
-void execute_job(job_t *j, char *envp[], char *path[]) {
+void execute_job(job_t *j) {
     
     struct sigaction dfl;
     sigemptyset(&dfl.sa_mask);
@@ -109,17 +109,7 @@ void execute_job(job_t *j, char *envp[], char *path[]) {
             sigaction(SIGTTOU, &dfl, NULL);
             
             // 処理呼び出し
-            if (strchr(p->arg_list[0], '/')) {
-                execve(p->arg_list[0], p->arg_list, envp);
-            } else {
-                int i;
-                char buf[LINE_LEN];
-                for (i = 0; path[i]; ++i) {
-                    strcpy(buf, path[i]);
-                    strcat(buf, p->arg_list[0]);
-                    execve(buf, p->arg_list, envp);
-                }
-            }
+            execvp(p->arg_list[0], p->arg_list);
             perror(p->arg_list[0]);
             exit(1);
         } else if (pid == -1) {
