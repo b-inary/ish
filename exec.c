@@ -104,6 +104,7 @@ void execute_job(job_t *j, char *envp[], char *path[]) {
             // シグナルの処理をデフォルトに戻す
             sigaction(SIGINT,  &dfl, NULL);
             sigaction(SIGTSTP, &dfl, NULL);
+            sigaction(SIGQUIT, &dfl, NULL);
             sigaction(SIGTTIN, &dfl, NULL);
             sigaction(SIGTTOU, &dfl, NULL);
             

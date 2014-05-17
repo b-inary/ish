@@ -17,6 +17,7 @@ int main(int argc, char *argv[], char *envp[])
     sa1.sa_flags = sa2.sa_flags = 0;
     sigaction(SIGINT,  &sa1, NULL);
     sigaction(SIGTSTP, &sa1, NULL);
+    sigaction(SIGQUIT, &sa1, NULL);
     sigaction(SIGTTIN, &sa2, NULL);
     sigaction(SIGTTOU, &sa2, NULL);
     
