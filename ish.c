@@ -21,12 +21,12 @@ int main(int argc, char *argv[])
     sigaction(SIGTTIN, &sa2, NULL);
     sigaction(SIGTTOU, &sa2, NULL);
     
-    char s[LINE_LEN];
+    char *s;
     job_t *j;
     
     // メインループ
-    while (get_line(s, LINE_LEN)) {
-        if (strcmp(s, "exit\n") == 0) break;
+    while ((s = readline()) != NULL) {
+        if (strcmp(s, "exit") == 0) break;
         if ((j = parse_line(s)) != NULL) {
             update_status();
             if (job_list == NULL) {
@@ -41,6 +41,8 @@ int main(int argc, char *argv[])
         print_bginfo(0);
         signaled = 0;
     }
+    
+    free_history();
     
     return 0;
 }

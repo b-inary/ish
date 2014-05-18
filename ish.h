@@ -7,13 +7,16 @@
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <termios.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 // 定数
 #define PROMPT      "\x1b[1;34mish$\x1b[0;39m "
+#define PROMPT_LEN  5
 #define LINE_LEN    256
 #define ARGS_LEN    32
 
@@ -84,8 +87,13 @@ void update_status();       // ジョブリストの状態を更新
 void print_bginfo(int print_all);   // バックグラウンドの状態変化を表示し、
                                     // 完了したジョブを削除する
 // parse.c
-char *get_line(char *s, int size);      // size - 1 文字を s に読み込む
-job_t *parse_line(char *s);             // パーサー; エラー時はNULLを返す
+job_t *parse_line(char *s);     // パーサー; エラー時はNULLを返す
+
+// readline.c
+char *readline();       // 標準入力から1行読み込んだ文字列のポインタを返す
+                        // ポインタの寿命は次に readline() を呼び出すまで
+                        // 入力では方向キーなどの使用が可能
+void free_history();    // 履歴を解放
 
 
 #endif // ISH_H_

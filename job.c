@@ -154,7 +154,7 @@ void continue_fg(int jobid) {
                 for (p = j->proc_list; p; p = p->next)
                     if (p->status == STOPPED)
                         p->status = RUNNING;
-                printf("%s", j->cmd);
+                printf("%s\n", j->cmd);
                 if (j->status == STOPPED && kill(-j->pgid, SIGCONT) == -1)
                     perror("kill (SIGCONT)");
                 j->mode = FOREGROUND;
@@ -212,7 +212,7 @@ void print_bginfo(int print_all) {
                 case DONE:    printf("Done          "); break; 
             }
             if (strlen(j->cmd) > 41) printf("%.40s...\n", j->cmd);
-            else                     printf("%s", j->cmd);
+            else                     printf("%s\n", j->cmd);
         }
         if (j->status == DONE) {
             job_t *jj = j;
