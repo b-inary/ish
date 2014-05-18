@@ -119,6 +119,8 @@ void key_enter() {
 
 // Ctrl + C; buf[buf_index] に空文字列を格納
 void ctrl_c() {
+    free(buf[buf_index]);
+    MALLOC(buf[buf_index], 1);
     buf[buf_index][0] = '\0';
     key_end();
     printf("^C\n\r");
@@ -241,7 +243,9 @@ char *readline() {
         } else if (1 <= c && c <= 26) {
             if (c ==  3) { ctrl_c(); break; }
             if (c ==  4) { if (!len) { ctrl_d = 1; break; } else key_delete(); }
+            if (c ==  1) key_home();
             if (c ==  2) key_left();
+            if (c ==  5) key_end();
             if (c ==  6) key_right();
             if (c == 14) key_down();
             if (c == 16) key_up();
