@@ -20,21 +20,21 @@
 
 
 #define HISTORY     16
-#define BUF_UNIT    64
+#define TMP_UNIT    64
 
-char *buf[HISTORY], *tmp = NULL;    // 履歴、作業領域
-int buf_index = 0, cur_index;       // cur_index は上下キーで参照している位置
-int buf_size;           // buf の領域の大きさ (実際は buf_size + 1)
+char *hist[HISTORY], *tmp;      // 履歴、作業領域
+int hist_index, cur_index;      // cur_index は上下キーで参照している位置
+int tmp_size;           // tmp の領域の大きさ (実際は tmp_size + 1)
 int pos, len, col;      // 現在のカーソル位置、文字列の長さ、ウィンドウの横幅
 
 // tmp の領域を拡張
 void extend_tmp() {
     char *t;
-    MALLOC(t, buf_size + BUF_UNIT + 1);
-    memcpy(t, tmp, buf_size);
+    MALLOC(t, tmp_size + TMP_UNIT + 1);
+    memcpy(t, tmp, tmp_size + 1);
     free(tmp);
     tmp = t;
-    buf_size += BUF_UNIT;
+    tmp_size += TMP_UNIT;
 }
 
 // カーソルを移動
@@ -63,28 +63,28 @@ void move_history(int idx) {
     pos = len;
     memset(tmp, ' ', len);
     printf("%s", tmp);
-    if ((len + PROMPT_LEN) % col == 0) printf("\n\r");
+    if ((len + PROMPT_LEN) % col == 0) printf("\n");
     key_home();
-    if (idx == buf_index) { len = 0; tmp[0] = '\0'; return; }
-    pos = len = strlen(buf[idx]);
-    if (buf_size < len) {
+    if (idx == hist_index) { len = 0; tmp[0] = '\0'; return; }
+    pos = len = strlen(hist[idx]);
+    if (tmp_size < len) {
         free(tmp);
-        buf_size = (len / BUF_UNIT + 1) * BUF_UNIT;
-        MALLOC(tmp, buf_size + 1);
+        tmp_size = (len / TMP_UNIT + 1) * TMP_UNIT;
+        MALLOC(tmp, tmp_size + 1);
     }
-    strcpy(tmp, buf[idx]);
+    memcpy(tmp, hist[idx], len + 1);
     printf("%s", tmp);
-    if ((len + PROMPT_LEN) % col == 0) printf("\n\r");
+    if ((len + PROMPT_LEN) % col == 0) printf("\n");
 }
 
 // 上下キー
 void key_up() {
     int idx = (cur_index - 1 + HISTORY) % HISTORY;
-    if (idx == buf_index || buf[idx] == NULL) return;
+    if (idx == hist_index || hist[idx] == NULL) return;
     move_history(idx);
 }
 void key_down() {
-    if (cur_index == buf_index) return;
+    if (cur_index == hist_index) return;
     move_history((cur_index + 1) % HISTORY);
 }
 
@@ -94,7 +94,7 @@ void key_delete() {
     int i;
     for (i = pos; i < len; ++i) tmp[i] = tmp[i + 1];
     printf("%s ", tmp + pos);
-    if ((len + PROMPT_LEN) % col == 0) printf("\n\r");
+    if ((len + PROMPT_LEN) % col == 0) printf("\n");
     move_cursor(pos, 1);
     --len;
 }
@@ -106,35 +106,34 @@ void key_backspace() {
     key_delete();
 }
 
-// Enterキー; buf[buf_index] に文字列を格納
+// Enterキー; hist[hist_index] に文字列を格納
 void key_enter() {
-    while (len > 0 && tmp[len - 1] == ' ') tmp[--len] = '\0';
-    free(buf[buf_index]);
-    MALLOC(buf[buf_index], len + 1);
-    memcpy(buf[buf_index], tmp, len + 1);
-    if (len > 0) buf_index = (buf_index + 1) % HISTORY;
     key_end();
-    printf("\n\r");
+    printf("\n");
+    while (len > 0 && tmp[len - 1] == ' ') tmp[--len] = '\0';
+    if (len == 0 || tmp[0] == ' ') return;
+    free(hist[hist_index]);
+    MALLOC(hist[hist_index], len + 1);
+    memcpy(hist[hist_index], tmp, len + 1);
+    hist_index = (hist_index + 1) % HISTORY;
 }
 
-// Ctrl + C; buf[buf_index] に空文字列を格納
+// Ctrl + C
 void ctrl_c() {
-    free(buf[buf_index]);
-    MALLOC(buf[buf_index], 1);
-    buf[buf_index][0] = '\0';
     key_end();
-    printf("^C\n\r");
+    printf("^C\n");
+    tmp[0] = '\0';
 }
 
 // 文字を挿入
 void insert_char(int c) {
-    if (len == buf_size) extend_tmp();
+    if (len == tmp_size) extend_tmp();
     int i;
     for (i = len; i >= pos; --i) tmp[i + 1] = tmp[i];
     tmp[pos] = c;
     printf("%s", tmp + pos);
     ++pos; ++len;
-    if ((len + PROMPT_LEN) % col == 0) printf("\n\r");
+    if ((len + PROMPT_LEN) % col == 0) printf("\n");
     move_cursor(pos, 1);
 }
 
@@ -143,14 +142,14 @@ void insert_char(int c) {
 // 入力では方向キーなどの使用が可能
 char *readline() {
     
-    buf_size = BUF_UNIT;
+    tmp_size = TMP_UNIT;
     free(tmp);
-    MALLOC(tmp, buf_size + 1);
+    MALLOC(tmp, tmp_size + 1);
     
     // 非インタラクティブ時
     if (!isatty(0)) {
         while (1) {
-            if (!fgets(tmp + buf_size - BUF_UNIT, BUF_UNIT + 1, stdin))
+            if (!fgets(tmp + tmp_size - TMP_UNIT, TMP_UNIT + 1, stdin))
                 return NULL;
             char *c = strchr(tmp, '\n');
             if (c) {
@@ -170,8 +169,8 @@ char *readline() {
         init = 1;
         tcgetattr(0, &original);
         tcgetattr(0, &settings);
-        settings.c_iflag &= ~(PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);
-        settings.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
+        cfmakeraw(&settings);
+        settings.c_oflag |= OPOST;
         settings.c_cc[VTIME] = 0;
         settings.c_cc[VMIN] = 1;
     }
@@ -183,12 +182,15 @@ char *readline() {
     col = winsize.ws_col;
     
     // 1バイトずつ読み込む
-    int c, state = 0, ctrl_d = 0, idx = buf_index;
     tmp[0] = '\0';
     pos = len = 0;
-    cur_index = buf_index;
-    while ((c = getchar()) != EOF) {
-        if (c == '\x1b') {
+    cur_index = hist_index;
+    int state = 0, ctrl_d = 0;
+    while (1) {
+        int c = getchar();
+        if (c == EOF) {
+            continue;
+        } else if (c == '\x1b') {
             state = 1;
         } else if (state == 1) {    // \x1b
             state = 0;
@@ -241,14 +243,19 @@ char *readline() {
         } else if (c == 127) {
             key_backspace();
         } else if (1 <= c && c <= 26) {
-            if (c ==  3) { ctrl_c(); break; }
-            if (c ==  4) { if (!len) { ctrl_d = 1; break; } else key_delete(); }
-            if (c ==  1) key_home();
-            if (c ==  2) key_left();
-            if (c ==  5) key_end();
-            if (c ==  6) key_right();
-            if (c == 14) key_down();
-            if (c == 16) key_up();
+            if (c == 3) { ctrl_c(); break; }
+            if (c == 4) {
+                if (!len) { ctrl_d = 1; break; }
+                else key_delete();
+            }
+            switch (c) {
+                case  1: key_home();  break;
+                case  2: key_left();  break;
+                case  5: key_end();   break;
+                case  6: key_right(); break;
+                case 14: key_down();  break;
+                case 16: key_up();    break;
+            }
         } else if (32 <= c && c <= 126) {   
             insert_char(c);
         }
@@ -262,14 +269,14 @@ char *readline() {
         return NULL;
     }
     
-    return buf[idx];
+    return tmp;
 }
 
 // 履歴を解放
 void free_history() {
     int i;
     for (i = 0; i < HISTORY; ++i)
-        free(buf[i]);
+        free(hist[i]);
     free(tmp);
 }
 
