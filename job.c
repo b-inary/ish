@@ -24,8 +24,8 @@ job_t *new_job() {
     j->next = NULL;
     j->pgid = 0;
     j->cmd[0] = '\0';
-    j->proc_cnt = 0;
-    j->proc_list = NULL;
+    j->proc_cnt = 1;
+    j->proc_list = new_proc();
     j->mode = FOREGROUND;
     j->jobid = 0;
     j->printed = 0;
@@ -59,11 +59,11 @@ int is_running(job_t *j) {
     return 0;
 }
 
-// ジョブが完了したかどうか
-int is_done(job_t *j) {
+// ジョブが終了したかどうか
+int is_terminated(job_t *j) {
     proc_t *p;
     for (p = j->proc_list; p; p = p->next)
-        if (p->status != DONE)
+        if (p->status == RUNNING || p->status == STOPPED)
             return 0;
     return 1;
 }
@@ -75,9 +75,15 @@ int mark_status(job_t *j, pid_t pid, int status) {
             proc_t *p;
             for (p = j->proc_list; p; p = p->next) {
                 if (pid == p->pid) {
-                    p->status = WIFSTOPPED(status) ? STOPPED : DONE;
-                    if (WIFSTOPPED(status) || WIFSIGNALED(status))
-                        if (signaled == 0) signaled = 1, printf("\n");
+                    if (WIFSTOPPED(status))
+                        p->status = STOPPED;
+                    else if (WIFEXITED(status))
+                        p->status = WEXITSTATUS(status) ? EXIT : DONE;
+                    else
+                        p->status = TERMINATED;
+                    if (j->mode == FOREGROUND && signaled == 0)
+                        if (WIFSTOPPED(status) || WIFSIGNALED(status))
+                            printf("\n"), signaled = 1;
                     return 1;
                 }
             }
@@ -100,8 +106,10 @@ void wait_job(job_t *j) {
         mark_status(j, pid, status);
     }
     tcsetpgrp(0, getpid());
-    if (is_done(j)) {
-        j->status = DONE;
+    if (is_terminated(j)) {
+        proc_t *p = j->proc_list;
+        while (p->next) p = p->next;
+        j->status = p->status;
     } else {
         j->mode = BACKGROUND;
         j->printed = 0;
@@ -120,11 +128,9 @@ void continue_bg(int jobid) {
         jobid = maxjid ? maxjid : -1;
     for (j = job_list; j; j = j->next) {
         if (jobid == j->jobid) {
-            if (j->status == DONE) {
-                printf("bg: job has terminated\n");
-            } else if (j->status == RUNNING) {
+            if (j->status == RUNNING) {
                 printf("bg: job %d already in background\n", jobid);
-            } else {
+            } else if (j->status == STOPPED) {
                 proc_t *p;
                 for (p = j->proc_list; p; p = p->next)
                     if (p->status == STOPPED)
@@ -133,6 +139,8 @@ void continue_bg(int jobid) {
                     perror("kill (SIGCONT)");
                 j->printed = 0;
                 j->status = RUNNING;
+            } else {
+                printf("bg: job has terminated\n");
             }
             return;
         }
@@ -147,9 +155,7 @@ void continue_fg(int jobid) {
         jobid = maxjid ? maxjid : -1;
     for (j = job_list; j; j = j->next) {
         if (jobid == j->jobid) {
-            if (j->status == DONE) {
-                printf("fg: job has terminated\n");
-            } else {
+            if (j->status == RUNNING || j->status == STOPPED) {
                 proc_t *p;
                 for (p = j->proc_list; p; p = p->next)
                     if (p->status == STOPPED)
@@ -161,6 +167,8 @@ void continue_fg(int jobid) {
                 j->status = RUNNING;
                 tcsetpgrp(0, j->pgid);
                 wait_job(j);
+            } else {
+                printf("fg: job has terminated\n");
             }
             return;
         }
@@ -178,20 +186,20 @@ void update_status() {
     } while (mark_status(job_list, pid, status));
     job_t *j;
     for (j = job_list; j; j = j->next) {
-        if (is_done(j)) {
-            if (j->status != DONE) {
-                j->printed = 0;
-                j->status = DONE;
-            }
+        proc_status s;
+        if (is_terminated(j)) {
+            proc_t *p = j->proc_list;
+            while (p->next) p = p->next;
+            s = p->status;
         } else {
-            proc_status s = is_running(j) ? RUNNING : STOPPED;
-            if (j->status != s) {
-                j->printed = 0;
-                j->status = s;
-            }
-            if (!j->jobid)
-                j->jobid = ++maxjid;
+            s = is_running(j) ? RUNNING : STOPPED;
         }
+        if (j->status != s) {
+            j->printed = 0;
+            j->status = s;
+        }
+        if (j->mode == BACKGROUND && !j->jobid)
+            j->jobid = ++maxjid;
     }
 }
 
@@ -207,22 +215,24 @@ void print_bginfo(int print_all) {
             sprintf(buf, "[%d] (%d) ", j->jobid, j->pgid);
             printf("%-14s", buf);
             switch (j->status) {
-                case RUNNING: printf("Running       "); break;
-                case STOPPED: printf("Stopped       "); break;
-                case DONE:    printf("Done          "); break; 
+                case RUNNING:    printf("Running       "); break;
+                case STOPPED:    printf("Stopped       "); break;
+                case DONE:       printf("Done          "); break;
+                case EXIT:       printf("Exit          "); break;
+                case TERMINATED: printf("Terminated    "); break;
             }
             if (strlen(j->cmd) > 41) printf("%.40s...\n", j->cmd);
             else                     printf("%s\n", j->cmd);
         }
-        if (j->status == DONE) {
+        if (j->status == RUNNING || j->status == STOPPED) {
+            if (!job_list) job_list = j;
+            prv = j;
+            j = j->next;
+        } else {
             job_t *jj = j;
             j = j->next;
             if (prv) prv->next = j;
             free_job(jj);
-        } else {
-            if (!job_list) job_list = j;
-            prv = j;
-            j = j->next;
         }
     }
     maxjid = 0;

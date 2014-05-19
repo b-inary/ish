@@ -28,7 +28,9 @@
 typedef enum proc_status_ {
     RUNNING,
     STOPPED,
-    DONE
+    DONE,       // 終了コード 0 で終了
+    EXIT,       // 終了コード 0 以外で終了
+    TERMINATED  // 異常終了
 } proc_status;
 
 // 出力モード
@@ -87,7 +89,7 @@ void update_status();       // ジョブリストの状態を更新
 void print_bginfo(int print_all);   // バックグラウンドの状態変化を表示し、
                                     // 完了したジョブを削除する
 // parse.c
-job_t *parse_line(char *s);     // パーサー; エラー時はNULLを返す
+job_t *parse_line(char *s);     // パーサー; ジョブが無い場合はNULLを返す
 
 // readline.c
 char *readline();       // 標準入力から1行読み込んだ文字列のポインタを返す

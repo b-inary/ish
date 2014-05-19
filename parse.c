@@ -9,18 +9,16 @@ typedef enum parse_state_ {
     OUTFILE
 } parse_state;
 
-// パーサー; エラー時はNULLを返す
+// パーサー; ジョブが無い場合はNULLを返す
 job_t *parse_line(char *buf) {
     
     // 空文字列、空白文字のみの場合を除外
     buf += strspn(buf, " \t");
     if (*buf == '\0')
-        return new_job();
+        return NULL;
     
     job_t *j = new_job();
     strcpy(j->cmd, buf);
-    j->proc_cnt = 1;
-    j->proc_list = new_proc();
     
     proc_t *proc = j->proc_list;
     parse_state state = ARGUMENT;
