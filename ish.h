@@ -17,7 +17,6 @@
 // 定数
 #define PROMPT      "\x1b[1;34mish$\x1b[0;39m "
 #define PROMPT_LEN  5
-#define LINE_LEN    256
 #define ARGS_LEN    32
 
 // mallocマクロ
@@ -61,7 +60,7 @@ typedef struct proc_t_ {
 typedef struct job_t_ {
     struct job_t_ *next;    // 次のジョブ; 無ければNULL
     pid_t pgid;             // プロセスグループID
-    char cmd[LINE_LEN];     // 入力されたコマンド (LINE_LEN-1文字が最大)
+    char *cmd;              // 入力されたコマンド
     int proc_cnt;           // ジョブに含まれるプロセス数
     proc_t *proc_list;      // プロセスリスト
     job_mode mode;          // フォアグラウンド/バックグラウンド

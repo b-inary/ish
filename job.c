@@ -23,7 +23,7 @@ job_t *new_job() {
     MALLOC(j, sizeof(job_t));
     j->next = NULL;
     j->pgid = 0;
-    j->cmd[0] = '\0';
+    j->cmd = NULL;
     j->proc_cnt = 1;
     j->proc_list = new_proc();
     j->mode = FOREGROUND;
@@ -46,6 +46,7 @@ void free_proc_list(proc_t *p) {
 
 // ジョブを解放 (ジョブリストではない)
 void free_job(job_t *j) {
+    free(j->cmd);
     free_proc_list(j->proc_list);
     free(j);
 }

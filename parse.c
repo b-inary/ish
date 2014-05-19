@@ -18,12 +18,13 @@ job_t *parse_line(char *buf) {
         return NULL;
     
     job_t *j = new_job();
+    MALLOC(j->cmd, strlen(buf) + 1);
     strcpy(j->cmd, buf);
     
     proc_t *proc = j->proc_list;
     parse_state state = ARGUMENT;
     
-    // 改行文字まで解析
+    // 終端文字まで解析
     while (*buf != '\0') {
         // 空白文字
         if (*buf == ' ' || *buf == '\t')
