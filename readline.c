@@ -10,6 +10,7 @@
  *  \x1b[C : 右方向キー
  *  \x1b[D : 左方向キー
  *  \x1b[1;2A : Shift + 上方向キー
+ *  \x1b[1;3A : Alt + 上方向キー
  *  \x1b[1;5A : Ctrl + 上方向キー
  *  \x1bOH, \1b[1~ : Home
  *  \x1bOF, \1b[4~ : End
@@ -111,7 +112,9 @@ void key_enter() {
     key_end();
     printf("\n");
     while (len > 0 && tmp[len - 1] == ' ') tmp[--len] = '\0';
-    if (len == 0 || tmp[0] == ' ') return;
+    int prv = (hist_index - 1 + HISTORY) % HISTORY;
+    if (len == 0 || tmp[0] == ' ' || (hist[prv] && !strcmp(tmp, hist[prv])))
+        return;
     free(hist[hist_index]);
     MALLOC(hist[hist_index], len + 1);
     memcpy(hist[hist_index], tmp, len + 1);
@@ -202,8 +205,6 @@ char *readline() {
                 case 'B': state = 0; key_down();  break;
                 case 'C': state = 0; key_right(); break;
                 case 'D': state = 0; key_left();  break;
-                case 'H': state = 0; key_home();  break;
-                case 'F': state = 0; key_end();   break;
                 case '1': state = 4; break;
                 case '3': state = 5; break;
                 case '4': state = 6; break;
@@ -212,14 +213,8 @@ char *readline() {
             }
         } else if (state == 3) {    // \x1bO
             state = 0;
-            switch (c) {
-                case 'A': key_up();    break;
-                case 'B': key_down();  break;
-                case 'C': key_right(); break;
-                case 'D': key_left();  break;
-                case 'H': key_home();  break;
-                case 'F': key_end();   break;
-            }
+            if (c == 'H') key_home();
+            if (c == 'F') key_end();
         } else if (state == 4) {    // \x1b[1
             state = 0;
             if (c == '~') key_home();
@@ -238,25 +233,23 @@ char *readline() {
             state = 0;
             if (c == 'C') key_end();
             if (c == 'D') key_home();
-        } else if (c == '\r') {
-            key_enter(); break;
         } else if (c == 127) {
             key_backspace();
-        } else if (1 <= c && c <= 26) {
+        } else if (c < 32) {
+            if (c == 10 || c == 13) { key_enter(); break; }
             if (c == 3) { ctrl_c(); break; }
             if (c == 4) {
                 if (!len) { ctrl_d = 1; break; }
                 else key_delete();
             }
-            switch (c) {
-                case  1: key_home();  break;
-                case  2: key_left();  break;
-                case  5: key_end();   break;
-                case  6: key_right(); break;
-                case 14: key_down();  break;
-                case 16: key_up();    break;
-            }
-        } else if (32 <= c && c <= 126) {   
+            if (c ==  1) key_home();
+            if (c ==  2) key_left();
+            if (c ==  5) key_end();
+            if (c ==  6) key_right();
+            if (c ==  8) key_backspace();
+            if (c == 14) key_down();
+            if (c == 16) key_up();
+        } else {   
             insert_char(c);
         }
     }
