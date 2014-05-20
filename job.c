@@ -82,9 +82,10 @@ int mark_status(job_t *j, pid_t pid, int status) {
                         p->status = WEXITSTATUS(status) ? EXIT : DONE;
                     else
                         p->status = TERMINATED;
-                    if (j->mode == FOREGROUND && signaled == 0)
-                        if (WIFSTOPPED(status) || WIFSIGNALED(status))
-                            printf("\n"), signaled = 1;
+                    if (j->mode == FOREGROUND && signaled == 0 &&
+                        ((WIFSIGNALED(status) && WTERMSIG(status) != SIGPIPE) ||
+                          WIFSTOPPED(status)))
+                        printf("\n"), signaled = 1;
                     return 1;
                 }
             }

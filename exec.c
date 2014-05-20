@@ -109,6 +109,7 @@ void execute_job(job_t *j) {
             sigaction(SIGTTOU, &dfl, NULL);
             
             // 処理呼び出し
+            if (p->next) close(fd[0]);
             execvp(p->arg_list[0], p->arg_list);
             perror(p->arg_list[0]);
             exit(1);
